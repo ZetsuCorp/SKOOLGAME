@@ -75,6 +75,13 @@ h1{font:900 52px 'Courier New',monospace;color:#00ffcc;letter-spacing:6px;margin
 }
 #accountantFill{height:100%;background:#00ffcc;border-radius:2px;width:0%;transition:width 0.3s;}
 
+/* SUE COOLDOWN BAR */
+#sueCooldownBar{
+  height:3px;background:rgba(162,155,254,0.15);border-radius:2px;margin-top:6px;display:none;
+}
+#sueCooldownFill{height:100%;background:#a29bfe;border-radius:2px;width:0%;transition:width 0.2s;}
+#sueStatus{font:700 9px 'Share Tech Mono',monospace;color:rgba(162,155,254,0.7);margin-top:3px;letter-spacing:2px;display:none;}
+
 /* ── COMMUNITY EMAIL LOG ── */
 #emailWrap{
   position:absolute;left:18px;pointer-events:all;
@@ -125,6 +132,7 @@ h1{font:900 52px 'Courier New',monospace;color:#00ffcc;letter-spacing:6px;margin
 .email-msg.good{color:#55efc4;}
 .email-msg.warn{color:#ffd93d;}
 .email-msg.corp{color:#ff6b6b;}
+.email-msg.legal{color:#a29bfe;}
 
 #bossAlert{
   display:none;position:absolute;top:80px;left:50%;transform:translateX(-50%);
@@ -142,6 +150,19 @@ h1{font:900 52px 'Courier New',monospace;color:#00ffcc;letter-spacing:6px;margin
 }
 #revenueAlert .ra-title{font:900 13px 'Share Tech Mono',monospace;color:#fff;letter-spacing:5px;}
 #revenueAlert .ra-sub{font:700 10px 'Share Tech Mono',monospace;color:rgba(180,255,220,0.85);letter-spacing:3px;margin-top:3px;}
+
+/* SUE BANNERS */
+#sueAlert{
+  display:none;position:absolute;top:130px;left:50%;transform:translateX(-50%);
+  border-radius:6px;padding:10px 28px;pointer-events:none;z-index:8;text-align:center;
+  animation:alertSlide 0.3s ease;white-space:nowrap;
+}
+#sueAlert.traveling{background:rgba(60,40,140,0.95);border:1px solid #a29bfe;}
+#sueAlert.won{background:rgba(0,120,70,0.95);border:1px solid #00ff88;}
+#sueAlert.lost{background:rgba(160,20,20,0.95);border:1px solid #ff4455;}
+#sueAlert .sa-title{font:900 13px 'Share Tech Mono',monospace;color:#fff;letter-spacing:4px;}
+#sueAlert .sa-sub{font:700 9px 'Share Tech Mono',monospace;color:rgba(220,220,255,0.85);letter-spacing:3px;margin-top:3px;}
+
 @keyframes alertSlide{from{opacity:0;top:60px;}to{opacity:1;top:80px;}}
 </style>
 </head>
@@ -164,10 +185,12 @@ h1{font:900 52px 'Courier New',monospace;color:#00ffcc;letter-spacing:6px;margin
       <div class="hire-row"><span class="hire-name">ACCOUNTANT</span><span class="hire-cost">$15K</span><button class="hire-btn" id="hireAccountant">HIRE</button></div>
       <div class="hire-row"><span class="hire-name">LEGAL TEAM</span><span class="hire-cost">$35K</span><button class="hire-btn" id="hireLegal">RETAINER</button></div>
       <div id="accountantBar"><div id="accountantFill"></div></div>
+      <div id="sueCooldownBar"><div id="sueCooldownFill"></div></div>
+      <div id="sueStatus"></div>
     </div>
   </div>
 
-  <!-- COMMUNITY EMAIL — positioned dynamically below officeToggle via JS -->
+  <!-- COMMUNITY EMAIL -->
   <div id="emailWrap">
     <button id="emailToggleBtn">
       <span>📧 COMMUNITY EMAIL<span id="emailBadge" style="display:none">0</span></span>
@@ -186,6 +209,10 @@ h1{font:900 52px 'Courier New',monospace;color:#00ffcc;letter-spacing:6px;margin
   <div id="revenueAlert">
     <div class="ra-title" id="raTitle">+$0 REVENUE!</div>
     <div class="ra-sub" id="raSub">CLOSING DEALS</div>
+  </div>
+  <div id="sueAlert">
+    <div class="sa-title" id="saTitle"></div>
+    <div class="sa-sub" id="saSub"></div>
   </div>
   <div id="over">
     <h1>COMMUNITY HUSTLE</h1>
@@ -224,9 +251,32 @@ const bossAlert=document.getElementById('bossAlert');
 const revenueAlert=document.getElementById('revenueAlert');
 const raTitle=document.getElementById('raTitle');
 const raSub=document.getElementById('raSub');
+const sueAlert=document.getElementById('sueAlert');
+const saTitle=document.getElementById('saTitle');
+const saSub=document.getElementById('saSub');
 let bossAlertShown=false;
 let revenueAlertCooldown=0;
 let lastMass=0;
+
+// ── SUE STATE ──
+const SUE_COOLDOWN=600;
+const SUE_SPEED=7;
+const SUE_WIN_CHANCE=0.60;
+const SETTLEMENT_PELLET_COUNT=4;
+const SETTLEMENT_PELLET_VALUE=8000;
+let sueState='idle'; // idle | traveling | cooldown
+let sueCooldownTimer=0;
+let sueMissiles=[]; // {x,y,vx,vy,targetBlob,alpha}
+let settlementPellets=[]; // {x,y,r,value,col,vx,vy,eaten}
+
+function showSueBanner(type,title,sub,duration){
+  sueAlert.className='';
+  sueAlert.classList.add(type);
+  saTitle.textContent=title;
+  saSub.textContent=sub;
+  sueAlert.style.display='block';
+  if(duration)setTimeout(()=>{sueAlert.style.display='none';},duration);
+}
 
 // ── GAME LOG ──
 const EMAIL_MAX=10;
@@ -234,7 +284,7 @@ const EMAIL_VISIBLE=4;
 let emailLog=[];
 let emailUnread=0;
 let emailPanelOpen=false;
-let gameTime=0; // frames since start
+let gameTime=0;
 
 function emailTS(){
   const s=Math.floor(gameTime/60);
@@ -244,7 +294,6 @@ function emailTS(){
 }
 
 function logEmail(msg,type=''){
-  // type: 'good','bad','warn','corp',''
   emailLog.unshift({ts:emailTS(),msg,type});
   if(emailLog.length>EMAIL_MAX)emailLog.pop();
   if(!emailPanelOpen){
@@ -267,7 +316,6 @@ function renderEmailLog(){
   `).join('');
 }
 
-// position emailWrap below officeToggle
 function positionEmailWrap(){
   const ot=document.getElementById('officeToggle');
   const ew=document.getElementById('emailWrap');
@@ -288,7 +336,6 @@ document.getElementById('emailToggleBtn').addEventListener('click',()=>{
   }
 });
 
-// reposition when office panel opens/closes (it changes height)
 const officePanelEl=document.getElementById('officePanel');
 const officePanelObserver=new MutationObserver(positionEmailWrap);
 officePanelObserver.observe(officePanelEl,{attributes:true,attributeFilter:['style']});
@@ -411,9 +458,7 @@ let hireCounts={intern:0,closer:0,ads:0,commMgr:0};
 
 const HIRE_LIFESPANS={intern:1800,closer:3600,commMgr:2700};
 
-// stage tracking for log
 let lastStageName='';
-// revenue milestone tracking
 let lastMilestoneMass=0;
 const MILESTONE_INTERVAL=10000;
 
@@ -720,6 +765,8 @@ function updateBoss(){
   if(bossTimer<=0){
     bossBlobs=[];bossDyingBlobs=[];bossSpawnCountdown=BOSS_APPEAR;
     logEmail('🏃 CORP retreated from the market.','warn');
+    // kill any traveling sue missiles
+    if(sueState==='traveling'){sueMissiles=[];sueState='cooldown';sueCooldownTimer=SUE_COOLDOWN;}
     return;
   }
   bossBlobs.forEach((blob,i)=>{if(blob.alive)updateBossBlob(blob,bossTimer,i===0);});
@@ -1032,6 +1079,47 @@ function drawAdSigns(){
   });
 }
 
+// ── SUE MECHANIC DRAW ──
+function drawSueMissiles(){
+  // Draw settlement pellets
+  settlementPellets.forEach(p=>{
+    if(p.eaten)return;
+    const[sx,sy]=w2s(p.x,p.y);
+    const sr=p.r*cam.z;
+    cx.save();
+    // glow
+    const glow=cx.createRadialGradient(sx,sy,sr*0.2,sx,sy,sr*2.2);
+    glow.addColorStop(0,'rgba(255,215,0,0.35)');
+    glow.addColorStop(1,'rgba(255,215,0,0)');
+    cx.beginPath();cx.arc(sx,sy,sr*2.2,0,TAU);cx.fillStyle=glow;cx.fill();
+    cx.beginPath();cx.arc(sx,sy,sr,0,TAU);
+    cx.fillStyle='#ffd93d';cx.fill();
+    cx.strokeStyle='rgba(255,255,255,0.8)';cx.lineWidth=2;cx.stroke();
+    cx.font=`${Math.max(10,sr*1.1)}px serif`;
+    cx.textAlign='center';cx.textBaseline='middle';
+    cx.fillText('💰',sx,sy);
+    cx.restore();
+    // drift
+    p.x+=p.vx;p.y+=p.vy;p.vx*=0.97;p.vy*=0.97;
+  });
+
+  // Draw sue missiles
+  sueMissiles.forEach(m=>{
+    if(!m.alive)return;
+    const[sx,sy]=w2s(m.x,m.y);
+    cx.save();
+    // trail glow
+    const glow=cx.createRadialGradient(sx,sy,2,sx,sy,14*cam.z);
+    glow.addColorStop(0,'rgba(162,155,254,0.5)');
+    glow.addColorStop(1,'rgba(162,155,254,0)');
+    cx.beginPath();cx.arc(sx,sy,14*cam.z,0,TAU);cx.fillStyle=glow;cx.fill();
+    cx.font=`${Math.max(12,20*cam.z)}px serif`;
+    cx.textAlign='center';cx.textBaseline='middle';
+    cx.fillText('⚖️',sx,sy);
+    cx.restore();
+  });
+}
+
 // ── MINIMAP ──
 const _mmFoodByCol={};
 let _mmLastFrame=-1;
@@ -1069,6 +1157,9 @@ function drawMinimap(){
     mc.fillStyle=h.rogue?'#ff4455':(HIRE_COLORS[h.type]||'#fff');mc.fill();
   });
   adsigns.forEach(s2=>{mc.beginPath();mc.arc(s2.x*s,s2.y*s,3,0,TAU);mc.fillStyle='#ffffff';mc.fill();});
+  // sue missiles on minimap
+  sueMissiles.forEach(m=>{if(!m.alive)return;mc.beginPath();mc.arc(m.x*s,m.y*s,4,0,TAU);mc.fillStyle='#a29bfe';mc.fill();});
+  settlementPellets.forEach(p=>{if(p.eaten)return;mc.beginPath();mc.arc(p.x*s,p.y*s,4,0,TAU);mc.fillStyle='#ffd93d';mc.fill();});
   blobs.forEach(b=>{
     const pr=Math.max(3,blobR(b)*s*2.5);
     const bx=b.x*s,by=b.y*s;
@@ -1080,7 +1171,6 @@ function drawMinimap(){
 }
 
 // ── NULL AI ──
-// throttle close log to avoid spam
 let lastCloseLog=0;
 function updateNulls(){
   const FLEE_R=350,FLEE_F=0.32;
@@ -1138,7 +1228,6 @@ function updateNulls(){
           alpha:1,vy:-1.2
         });
         closedThisFrame++;
-        // log every 5 closes to avoid spam
         if(gameTime-lastCloseLog>120){
           logEmail(`🤝 Closed a deal! +$${Math.round(earned).toLocaleString()}`,'good');
           lastCloseLog=gameTime;
@@ -1199,6 +1288,22 @@ function eatFood(){
   });
 }
 
+// eat settlement pellets
+function eatSettlementPellets(){
+  blobs.forEach(blob=>{
+    const br=blobR(blob);
+    settlementPellets.forEach(p=>{
+      if(p.eaten)return;
+      if(Math.hypot(p.x-blob.x,p.y-blob.y)<br+p.r*0.7){
+        p.eaten=true;
+        blob.m+=p.value;
+        closingTexts.push({x:p.x,y:p.y,text:`+$${p.value.toLocaleString()} SETTLEMENT`,alpha:1,vy:-1.0,green:true});
+      }
+    });
+  });
+  settlementPellets=settlementPellets.filter(p=>!p.eaten);
+}
+
 function bombBlast(blob,bomb){
   if(!blob.alive)return;
   const stage=getStage(blob.m);if(blob.m<200||stage.splits<=1)return;
@@ -1232,34 +1337,92 @@ function checkBombs(){
   blobs=blobs.filter(b=>b.alive);
 }
 
-function split(){
+// ── SUE MECHANIC ──
+function launchSue(){
   if(!running)return;
-  const wx=(mouse.x-W/2)/cam.z+cam.x,wy=(mouse.y-H/2)/cam.z+cam.y;
-  const born=[];
-  [...blobs].forEach(blob=>{
-    if(blobs.length+born.length>=16||blob.m<400)return;
-    const stage=getStage(blob.m);
-    const dx=wx-blob.x,dy=wy-blob.y,d=Math.hypot(dx,dy)||1;
-    const half=blob.m/2;blob.m=half;blob.mergeT=stage.cooldown;
-    blob.sqX=0.78;blob.sqY=1.3;blob.scale=0.92;blob.scaleVel=0.04;
-    const nb=mkBlob(blob.x+dx/d*blobR(blob),blob.y+dy/d*blobR(blob),half,stage.cooldown);
-    nb.scale=1.5;nb.scaleVel=-0.09;nb.sqX=1.5;nb.sqY=0.7;nb.vx=dx/d*13;nb.vy=dy/d*13;
-    born.push(nb);
+  if(sueState!=='idle')return;
+  if(!bossBlobs.length){logEmail('⚖️ No CORP target to sue!','warn');return;}
+  // legal team hires must be active and orbiting
+  const legalHires=hires.filter(h=>h.alive&&h.type==='legal');
+  if(legalHires.length===0){logEmail('⚖️ No legal team orbiting! Hire & deploy first.','warn');return;}
+
+  // Break all legal hires out of orbit — they become missiles
+  sueMissiles=[];
+  legalHires.forEach(h=>{
+    h.alive=false; // remove from orbit
+    // find nearest boss blob as target
+    let target=bossBlobs[0];
+    let td=Infinity;
+    bossBlobs.forEach(b=>{const d=Math.hypot(b.x-h.x,b.y-h.y);if(d<td){td=d;target=b;}});
+    sueMissiles.push({x:h.x,y:h.y,vx:0,vy:0,target,alive:true});
   });
-  blobs.push(...born);
+  sueState='traveling';
+  showSueBanner('traveling','⚖️ SENDING LAWYERS...','HEAT-SEEKING CORP',0);
+  logEmail('⚖️ Lawyers dispatched! Lawsuit incoming...','legal');
 }
 
-function eject(){
-  if(!running)return;
-  const wx=(mouse.x-W/2)/cam.z+cam.x,wy=(mouse.y-H/2)/cam.z+cam.y;
-  blobs.forEach(blob=>{
-    if(blob.m<400)return;
-    const dx=wx-blob.x,dy=wy-blob.y,d=Math.hypot(dx,dy)||1;
-    blob.m-=Math.min(blob.m*0.08,200);
-    foods.push({x:blob.x+dx/d*blobR(blob),y:blob.y+dy/d*blobR(blob),r:7,col:pColor});
-    if(foods.length>FOOD_COUNT+80)foods.splice(0,1);
-    foodGridDirty=true;
+function updateSueMissiles(){
+  if(sueState==='cooldown'){
+    sueCooldownTimer--;
+    if(sueCooldownTimer<=0){sueState='idle';sueAlert.style.display='none';}
+    return;
+  }
+  if(sueState!=='traveling')return;
+  if(!sueMissiles.length){sueState='cooldown';sueCooldownTimer=SUE_COOLDOWN;return;}
+
+  let anyAlive=false;
+  sueMissiles.forEach(m=>{
+    if(!m.alive)return;
+    anyAlive=true;
+    // re-find a live boss target if original is dead
+    if(!m.target||!bossBlobs.includes(m.target)||!m.target.alive){
+      const alive=bossBlobs.filter(b=>b.alive);
+      if(!alive.length){m.alive=false;return;}
+      let td=Infinity;
+      alive.forEach(b=>{const d=Math.hypot(b.x-m.x,b.y-m.y);if(d<td){td=d;m.target=b;}});
+    }
+    const tx=m.target.x,ty=m.target.y;
+    const dx=tx-m.x,dy=ty-m.y,d=Math.hypot(dx,dy)||1;
+    m.vx+=(dx/d*SUE_SPEED-m.vx)*0.15;
+    m.vy+=(dy/d*SUE_SPEED-m.vy)*0.15;
+    m.x+=m.vx;m.y+=m.vy;
+
+    // Impact check
+    const hitR=blobR(m.target)+20;
+    if(d<hitR){
+      m.alive=false;
+      const win=Math.random()<SUE_WIN_CHANCE;
+      if(win){
+        // Spill 4 large settlement pellets at impact point
+        for(let i=0;i<SETTLEMENT_PELLET_COUNT;i++){
+          const a=TAU/SETTLEMENT_PELLET_COUNT*i+rnd(-0.3,0.3);
+          const spd=rnd(3,7);
+          settlementPellets.push({
+            x:m.target.x,y:m.target.y,
+            r:28,value:SETTLEMENT_PELLET_VALUE,
+            col:'#ffd93d',
+            vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,
+            eaten:false
+          });
+        }
+        // drain CORP a bit
+        if(m.target.alive)m.target.m=Math.max(500,m.target.m*0.6);
+        showSueBanner('won','✅ WON THE LAWSUIT','SETTLEMENT INCOMING — COLLECT YOUR CASH',3500);
+        logEmail(`✅ Lawsuit WON! $${(SETTLEMENT_PELLET_COUNT*SETTLEMENT_PELLET_VALUE).toLocaleString()} settlement incoming.`,'good');
+      } else {
+        showSueBanner('lost','❌ CASE DISMISSED','LAWYERS RETREATING',2500);
+        logEmail('❌ Lawsuit DISMISSED. Lawyers lost.','bad');
+        setTimeout(()=>{sueAlert.style.display='none';},2500);
+      }
+    }
   });
+
+  sueMissiles=sueMissiles.filter(m=>m.alive);
+  if(!anyAlive||!sueMissiles.length){
+    sueState='cooldown';sueCooldownTimer=SUE_COOLDOWN;
+    // hide traveling banner if still showing that one
+    if(sueAlert.classList.contains('traveling'))sueAlert.style.display='none';
+  }
 }
 
 // ── HIRE SYSTEM ──
@@ -1323,7 +1486,7 @@ function spawnHire(type){
   }
   if(type==='legal'){
     legalOnRetainer=true;
-    logEmail('⚖️ Legal Team on retainer. They orbit when CORP appears.','warn');
+    logEmail('⚖️ Legal Team on retainer. They orbit when CORP appears. LEFT CLICK to sue!','warn');
     return;
   }
   if(type==='intern'){
@@ -1364,7 +1527,7 @@ function deployLegalTeam(){
     hires.push(h);
   });
   legalOnRetainer=false;
-  logEmail('⚖️ Legal Team deployed! Orbiting to block CORP.','warn');
+  logEmail('⚖️ Legal Team deployed! Orbiting. LEFT CLICK to launch lawsuit!','warn');
 }
 
 function updateHires(){
@@ -1761,8 +1924,31 @@ function updatePanelButtons(){
   document.getElementById('cntCommMgr').textContent=`${hireCounts.commMgr}/4`;
   document.getElementById('hireAccountant').disabled=tm<HIRE_COSTS.accountant||accountantTimer>0;
   const legalBtn=document.getElementById('hireLegal');
-  legalBtn.disabled=tm<HIRE_COSTS.legal||bossActive||legalOnRetainer;
+  legalBtn.disabled=tm<HIRE_COSTS.legal||legalOnRetainer||bossActive;
   legalBtn.textContent=legalOnRetainer?'ON RETAINER':'RETAINER';
+
+  // Sue cooldown bar
+  const coolBar=document.getElementById('sueCooldownBar');
+  const coolFill=document.getElementById('sueCooldownFill');
+  const sueStatusEl=document.getElementById('sueStatus');
+  const legalActive=hires.some(h=>h.alive&&h.type==='legal');
+  if(legalActive||sueState!=='idle'){
+    coolBar.style.display='block';
+    sueStatusEl.style.display='block';
+    if(sueState==='cooldown'){
+      coolFill.style.width=((1-sueCooldownTimer/SUE_COOLDOWN)*100)+'%';
+      sueStatusEl.textContent='SUE COOLDOWN...';
+    } else if(sueState==='traveling'){
+      coolFill.style.width='100%';
+      sueStatusEl.textContent='⚖️ LAWYERS TRAVELING...';
+    } else {
+      coolFill.style.width='100%';
+      sueStatusEl.textContent=legalActive&&bossActive?'LEFT CLICK TO SUE CORP':'WAITING FOR CORP...';
+    }
+  } else {
+    coolBar.style.display='none';
+    sueStatusEl.style.display='none';
+  }
 }
 
 function checkRevenueBanner(currentMass){
@@ -1805,6 +1991,7 @@ function loop(){
   bossDyingBlobs.forEach(db=>drawBossDyingBlob(db));
   drawMines();
   drawHires();
+  drawSueMissiles();
   bossBlobs.forEach((b,i)=>{if(b.alive)drawBossBlob(b,i===0);});
   if(bossBlobs.length)drawBossHUD(bossTimer);
   blobs.forEach(b=>{drawBlob(b);drawNameTag(b);});
@@ -1824,7 +2011,7 @@ function loop(){
   }
   if(!bossBlobs.length&&bossSpawnCountdown===BOSS_APPEAR){bossAlertShown=false;}
 
-  updateBlobs();eatFood();checkBombs();checkBossVsBombs();updateNulls();updateBoss();updateHires();updateCam();
+  updateBlobs();eatFood();eatSettlementPellets();checkBombs();checkBossVsBombs();updateNulls();updateBoss();updateHires();updateSueMissiles();updateCam();
 
   const tm=totalMass(),st=getStage(tm);
   massN.textContent='$'+Math.round(tm).toLocaleString();
@@ -1851,7 +2038,9 @@ function startGame(){
   hireCounts={intern:0,closer:0,ads:0,commMgr:0};
   bossSpawnCountdown=BOSS_APPEAR;bossBombTimer=0;drainBombs=[];bossTimer=BOSS_DURATION;
   revenueAlertCooldown=0;lastMass=300;
-  revenueAlert.style.display='none';bossAlert.style.display='none';
+  revenueAlert.style.display='none';bossAlert.style.display='none';sueAlert.style.display='none';
+  // reset sue
+  sueMissiles=[];settlementPellets=[];sueState='idle';sueCooldownTimer=0;
   // reset log
   emailLog=[];emailUnread=0;gameTime=0;
   lastStageName='';lastMilestoneMass=0;lastCloseLog=0;
@@ -1889,10 +2078,17 @@ document.getElementById('hireAds').addEventListener('click',()=>{if(running)spaw
 document.getElementById('hireCommMgr').addEventListener('click',()=>{if(running)spawnHire('commMgr');});
 document.getElementById('hireAccountant').addEventListener('click',()=>{if(running)spawnHire('accountant');});
 document.getElementById('hireLegal').addEventListener('click',()=>{if(running)spawnHire('legal');});
+
 window.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;});
-window.addEventListener('keydown',e=>{
-  if(e.code==='Space'){e.preventDefault();split();}
-  if(e.code==='KeyW'){e.preventDefault();eject();}
+
+// LEFT CLICK on canvas = sue
+gc.addEventListener('click',e=>{
+  if(!running)return;
+  // Only fire sue if legal team is orbiting and boss is present
+  const legalActive=hires.some(h=>h.alive&&h.type==='legal');
+  if(legalActive&&bossBlobs.length&&sueState==='idle'){
+    launchSue();
+  }
 });
 
 // initial position
