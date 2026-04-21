@@ -74,6 +74,58 @@ h1{font:900 52px 'Courier New',monospace;color:#00ffcc;letter-spacing:6px;margin
   height:3px;background:rgba(0,255,204,0.15);border-radius:2px;margin-top:4px;
 }
 #accountantFill{height:100%;background:#00ffcc;border-radius:2px;width:0%;transition:width 0.3s;}
+
+/* ── COMMUNITY EMAIL LOG ── */
+#emailWrap{
+  position:absolute;left:18px;pointer-events:all;
+  background:rgba(0,0,0,0.88);border:1px solid rgba(0,255,204,0.25);
+  border-radius:8px;min-width:240px;max-width:240px;
+  z-index:6;
+}
+#emailToggleBtn{
+  display:flex;align-items:center;justify-content:space-between;
+  width:100%;padding:7px 12px;
+  background:transparent;border:none;
+  color:#00ffcc;font:700 9px 'Share Tech Mono',monospace;
+  letter-spacing:3px;cursor:pointer;pointer-events:all;
+}
+#emailToggleBtn:hover{background:rgba(0,255,204,0.06);border-radius:8px 8px 0 0;}
+#emailBadge{
+  display:inline-block;background:#ff4455;color:#fff;
+  font:700 8px 'Share Tech Mono',monospace;
+  border-radius:8px;padding:1px 5px;margin-left:6px;
+  min-width:14px;text-align:center;
+}
+#emailPanel{
+  display:none;border-top:1px solid rgba(255,255,255,0.07);
+  padding:6px 0 4px 0;
+}
+#emailList{
+  max-height:112px;overflow-y:auto;
+  scrollbar-width:thin;scrollbar-color:rgba(0,255,204,0.2) transparent;
+}
+#emailList::-webkit-scrollbar{width:3px;}
+#emailList::-webkit-scrollbar-thumb{background:rgba(0,255,204,0.2);border-radius:2px;}
+.email-entry{
+  display:flex;gap:6px;align-items:flex-start;
+  padding:4px 10px;border-bottom:1px solid rgba(255,255,255,0.04);
+  animation:emailSlide 0.25s ease;
+}
+.email-entry:last-child{border-bottom:none;}
+@keyframes emailSlide{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
+.email-ts{
+  font:700 8px 'Share Tech Mono',monospace;
+  color:rgba(0,255,204,0.5);white-space:nowrap;padding-top:1px;flex-shrink:0;
+}
+.email-msg{
+  font:700 9px 'Share Tech Mono',monospace;
+  color:rgba(255,255,255,0.78);line-height:1.4;
+}
+.email-msg.bad{color:#ff8899;}
+.email-msg.good{color:#55efc4;}
+.email-msg.warn{color:#ffd93d;}
+.email-msg.corp{color:#ff6b6b;}
+
 #bossAlert{
   display:none;position:absolute;top:80px;left:50%;transform:translateX(-50%);
   background:rgba(180,0,40,0.92);border:1px solid #ff2244;border-radius:6px;
@@ -114,6 +166,18 @@ h1{font:900 52px 'Courier New',monospace;color:#00ffcc;letter-spacing:6px;margin
       <div id="accountantBar"><div id="accountantFill"></div></div>
     </div>
   </div>
+
+  <!-- COMMUNITY EMAIL — positioned dynamically below officeToggle via JS -->
+  <div id="emailWrap">
+    <button id="emailToggleBtn">
+      <span>📧 COMMUNITY EMAIL<span id="emailBadge" style="display:none">0</span></span>
+      <span id="emailChevron">▼</span>
+    </button>
+    <div id="emailPanel">
+      <div id="emailList"></div>
+    </div>
+  </div>
+
   <canvas id="mm" width="130" height="130"></canvas>
   <div id="bossAlert">
     <div class="ba-title">⚠ CORPORATE TAKEOVER INCOMING</div>
@@ -163,6 +227,72 @@ const raSub=document.getElementById('raSub');
 let bossAlertShown=false;
 let revenueAlertCooldown=0;
 let lastMass=0;
+
+// ── GAME LOG ──
+const EMAIL_MAX=10;
+const EMAIL_VISIBLE=4;
+let emailLog=[];
+let emailUnread=0;
+let emailPanelOpen=false;
+let gameTime=0; // frames since start
+
+function emailTS(){
+  const s=Math.floor(gameTime/60);
+  const m=Math.floor(s/60);
+  const ss=s%60;
+  return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+}
+
+function logEmail(msg,type=''){
+  // type: 'good','bad','warn','corp',''
+  emailLog.unshift({ts:emailTS(),msg,type});
+  if(emailLog.length>EMAIL_MAX)emailLog.pop();
+  if(!emailPanelOpen){
+    emailUnread++;
+    const badge=document.getElementById('emailBadge');
+    badge.style.display='inline-block';
+    badge.textContent=emailUnread>9?'9+':emailUnread;
+  }
+  renderEmailLog();
+}
+
+function renderEmailLog(){
+  const list=document.getElementById('emailList');
+  const visible=emailLog.slice(0,EMAIL_VISIBLE);
+  list.innerHTML=visible.map(e=>`
+    <div class="email-entry">
+      <span class="email-ts">${e.ts}</span>
+      <span class="email-msg ${e.type}">${e.msg}</span>
+    </div>
+  `).join('');
+}
+
+// position emailWrap below officeToggle
+function positionEmailWrap(){
+  const ot=document.getElementById('officeToggle');
+  const ew=document.getElementById('emailWrap');
+  const rect=ot.getBoundingClientRect();
+  ew.style.top=(rect.bottom+6)+'px';
+  ew.style.left='18px';
+}
+
+document.getElementById('emailToggleBtn').addEventListener('click',()=>{
+  emailPanelOpen=!emailPanelOpen;
+  document.getElementById('emailPanel').style.display=emailPanelOpen?'block':'none';
+  document.getElementById('emailChevron').textContent=emailPanelOpen?'▲':'▼';
+  if(emailPanelOpen){
+    emailUnread=0;
+    const badge=document.getElementById('emailBadge');
+    badge.style.display='none';
+    renderEmailLog();
+  }
+});
+
+// reposition when office panel opens/closes (it changes height)
+const officePanelEl=document.getElementById('officePanel');
+const officePanelObserver=new MutationObserver(positionEmailWrap);
+officePanelObserver.observe(officePanelEl,{attributes:true,attributeFilter:['style']});
+window.addEventListener('resize',positionEmailWrap);
 
 const OBJECTIONS_FLEE=[
   "I can't afford it!","Not right now!","I need to think about it!",
@@ -281,6 +411,12 @@ let hireCounts={intern:0,closer:0,ads:0,commMgr:0};
 
 const HIRE_LIFESPANS={intern:1800,closer:3600,commMgr:2700};
 
+// stage tracking for log
+let lastStageName='';
+// revenue milestone tracking
+let lastMilestoneMass=0;
+const MILESTONE_INTERVAL=10000;
+
 // ── BOSS ──
 const BOSS_COLOR='#cc2244';
 const BOSS_START_MASS=12000;
@@ -299,6 +435,7 @@ let bossDyingBlobs=[];
 let bossSpawnCountdown=BOSS_APPEAR;
 let bossBombTimer=0;
 let drainBombs=[];
+let bossWasActive=false;
 
 function mkBossBlob(x,y,m,mergeT){
   return{x,y,m,vx:0,vy:0,mergeT:mergeT||0,spd:getStage(m).speed,
@@ -315,6 +452,7 @@ function spawnBoss(){
   else{bx=MAP-100;by=rnd(100,MAP-100);}
   bossBlobs=[mkBossBlob(bx,by,BOSS_START_MASS,0)];
   bossBombTimer=BOSS_BOMB_INTERVAL;
+  logEmail('🏢 CORP has entered the market!','corp');
 }
 
 const MINE_SEEK_R=320,MINE_SPEED=3.8,MINE_LIFE=480,MINE_R=18;
@@ -494,6 +632,7 @@ function updateBossBlob(blob,bossTimer,isMain){
     const pr2=blobR(pb);
     if(Math.hypot(blob.x-pb.x,blob.y-pb.y)<br+pr2*0.5&&br>pr2*1.1){
       blob.m+=pb.m;blob.sqX=1.28;blob.sqY=0.76;blob.scale=1.12;blob.scaleVel=-0.02;pb.alive=false;
+      logEmail('💀 CORP absorbed your blob!','corp');
     }
   });
   blobs.forEach(pb=>{
@@ -504,6 +643,7 @@ function updateBossBlob(blob,bossTimer,isMain){
       const dying={...blob,dying:true,dyingT:0,dyingTargetX:pb.x,dyingTargetY:pb.y};
       bossDyingBlobs.push(dying);blob.alive=false;
       pb.sqX=1.28;pb.sqY=0.76;pb.scale=1.12;pb.scaleVel=-0.02;
+      logEmail(`💰 You ate a CORP blob! +$${Math.round(blob.m*0.5).toLocaleString()}`,'good');
     }
   });
   blob.bombTimer--;
@@ -547,6 +687,7 @@ function mineBlastPlayer(blob){
     nb.scale=1.7;nb.scaleVel=-0.1;nb.sqX=1.4;nb.sqY=0.7;nb.vx=Math.cos(a)*9;nb.vy=Math.sin(a)*9;
     blobs.push(nb);
   }
+  logEmail(`💥 CORP mine split you into ${slots} pieces!`,'bad');
 }
 
 function mineBlastNull(nb){
@@ -569,13 +710,18 @@ function mineBlastNull(nb){
 let bossTimer=BOSS_DURATION;
 
 function updateBoss(){
+  const wasActive=bossBlobs.length>0;
   if(!bossBlobs.length){
     bossSpawnCountdown--;
     if(bossSpawnCountdown<=0){spawnBoss();bossTimer=BOSS_DURATION;}
     return;
   }
   bossTimer--;
-  if(bossTimer<=0){bossBlobs=[];bossDyingBlobs=[];bossSpawnCountdown=BOSS_APPEAR;return;}
+  if(bossTimer<=0){
+    bossBlobs=[];bossDyingBlobs=[];bossSpawnCountdown=BOSS_APPEAR;
+    logEmail('🏃 CORP retreated from the market.','warn');
+    return;
+  }
   bossBlobs.forEach((blob,i)=>{if(blob.alive)updateBossBlob(blob,bossTimer,i===0);});
   updateBossMerge();
   drainBombs.forEach(db=>{
@@ -605,7 +751,7 @@ function updateBoss(){
   drainBombs=drainBombs.filter(db=>db.life>0);
   bossBlobs=bossBlobs.filter(b=>b.alive);
   bossDyingBlobs=bossDyingBlobs.filter(db=>db.scale>0.04&&db.dyingT<1.0);
-  if(!bossBlobs.length){bossSpawnCountdown=BOSS_APPEAR;}
+  if(!bossBlobs.length&&wasActive){bossSpawnCountdown=BOSS_APPEAR;logEmail('🏃 CORP retreated!','warn');}
 }
 
 function mkFood(){
@@ -886,16 +1032,13 @@ function drawAdSigns(){
   });
 }
 
-// ── MINIMAP food batching: persistent colour buckets, rebuilt every 6 frames ──
+// ── MINIMAP ──
 const _mmFoodByCol={};
 let _mmLastFrame=-1;
 
 function drawMinimap(){
   mc.clearRect(0,0,130,130);mc.fillStyle='rgba(5,5,8,0.92)';mc.fillRect(0,0,130,130);
   const s=130/MAP;
-
-  // Rebuild colour buckets only every 6 frames (~10 fps for food dots).
-  // Buckets store flat [x0,y0, x1,y1, …] pairs to avoid inner-object allocation.
   const frameNow=Math.floor(Date.now()/16);
   if(frameNow-_mmLastFrame>=6){
     _mmLastFrame=frameNow;
@@ -905,14 +1048,12 @@ function drawMinimap(){
       _mmFoodByCol[f.col].push(f.x*s,f.y*s);
     });
   }
-  // One beginPath + N arcs + one fill per colour = 10 draw calls instead of 2000.
   for(const col in _mmFoodByCol){
     const pts=_mmFoodByCol[col];if(!pts.length)continue;
     mc.beginPath();
     for(let i=0;i<pts.length;i+=2)mc.arc(pts[i],pts[i+1],1.2,0,TAU);
     mc.fillStyle=col;mc.fill();
   }
-
   bombs.forEach(b=>{mc.beginPath();mc.arc(b.x*s,b.y*s,2.5,0,TAU);mc.fillStyle='#ff3c3c';mc.fill();});
   nullBlobs.forEach(nb=>{if(!nb.alive)return;mc.beginPath();mc.arc(nb.x*s,nb.y*s,Math.max(1.5,nb.r*s*1.5),0,TAU);mc.fillStyle=nb.col;mc.fill();});
   bossBlobs.forEach(b=>{
@@ -939,6 +1080,8 @@ function drawMinimap(){
 }
 
 // ── NULL AI ──
+// throttle close log to avoid spam
+let lastCloseLog=0;
 function updateNulls(){
   const FLEE_R=350,FLEE_F=0.32;
   let px=MAP/2,py=MAP/2;
@@ -979,6 +1122,7 @@ function updateNulls(){
     }
     nb.objectionTimer=Math.max(0,nb.objectionTimer-1);
   });
+  let closedThisFrame=0;
   blobs.forEach(blob=>{
     const br=blobR(blob);
     nullBlobs.forEach(nb=>{
@@ -986,12 +1130,19 @@ function updateNulls(){
       if(Math.hypot(blob.x-nb.x,blob.y-nb.y)<br+nb.r*0.4&&br>nb.r*0.85){
         const stageIdx=STAGES.findIndex(s=>totalMass()>=s.min&&totalMass()<s.max);
         const payoutMult=STAGE_PAYOUT[Math.max(0,stageIdx)]||1.0;
-        blob.m+=nb.m*0.55*payoutMult;nb.alive=false;
+        const earned=nb.m*0.55*payoutMult;
+        blob.m+=earned;nb.alive=false;
         closingTexts.push({
           x:nb.x,y:nb.y,
           text:OBJECTIONS_CLOSE[Math.floor(Math.random()*OBJECTIONS_CLOSE.length)],
           alpha:1,vy:-1.2
         });
+        closedThisFrame++;
+        // log every 5 closes to avoid spam
+        if(gameTime-lastCloseLog>120){
+          logEmail(`🤝 Closed a deal! +$${Math.round(earned).toLocaleString()}`,'good');
+          lastCloseLog=gameTime;
+        }
       }
     });
   });
@@ -1060,6 +1211,7 @@ function bombBlast(blob,bomb){
     nb.scale=1.7;nb.scaleVel=-0.1;nb.sqX=1.4;nb.sqY=0.7;nb.vx=Math.cos(a)*8;nb.vy=Math.sin(a)*8;
     blobs.push(nb);
   }
+  logEmail(`💣 Hit a market bomb! Split into ${slots}.`,'bad');
   Object.assign(bomb,mkBomb());
 }
 
@@ -1148,7 +1300,6 @@ function spawnHire(type){
   const tm=totalMass();
   const cost=HIRE_COSTS[type];
   if(tm<cost)return;
-
   if(['intern','closer','ads','commMgr'].includes(type)&&hireCounts[type]>=4)return;
 
   let remaining=cost;
@@ -1162,14 +1313,17 @@ function spawnHire(type){
     const ah=rnd(0,TAU);
     adsigns.push({x:px+rnd(-200,200),y:py+rnd(-200,200),timer:480,r:55,pulseT:0,
       vx:Math.cos(ah)*1.5,vy:Math.sin(ah)*1.5,heading:ah,headingTimer:rnd(80,200)});
+    logEmail('📢 Ads Team deployed! Attracts prospects.','good');
     return;
   }
   if(type==='accountant'){
     accountantTimer=600;
+    logEmail('📊 Accountant active! 2.2x revenue for 10 sec.','good');
     return;
   }
   if(type==='legal'){
     legalOnRetainer=true;
+    logEmail('⚖️ Legal Team on retainer. They orbit when CORP appears.','warn');
     return;
   }
   if(type==='intern'){
@@ -1177,20 +1331,24 @@ function spawnHire(type){
     const h=mkHireBlob('intern',px+rnd(-150,150),py+rnd(-150,150),1000);
     if(h.internMissed){
       closingTexts.push({x:px,y:py-80,text:'Sorry I missed work 🤦',alpha:1,vy:-0.6,green:false});
+      logEmail('🤦 Intern no-showed. $800 wasted.','bad');
       hireCounts.intern--;
     } else {
       hires.push(h);
+      logEmail('🧑‍💻 Intern hired. Roams near you, brings windfalls.','');
     }
     return;
   }
   if(type==='closer'){
     hireCounts.closer++;
     hires.push(mkHireBlob('closer',px+rnd(-100,100),py+rnd(-100,100),1000));
+    logEmail('🤝 Closer hired. Hunts & delivers prospects to you.','');
     return;
   }
   if(type==='commMgr'){
     hireCounts.commMgr++;
     hires.push(mkHireBlob('commMgr',px+rnd(-100,100),py+rnd(-100,100),1000));
+    logEmail('🧲 Comm Mgr hired. Draws prospects toward your team.','');
     return;
   }
 }
@@ -1206,6 +1364,7 @@ function deployLegalTeam(){
     hires.push(h);
   });
   legalOnRetainer=false;
+  logEmail('⚖️ Legal Team deployed! Orbiting to block CORP.','warn');
 }
 
 function updateHires(){
@@ -1222,7 +1381,9 @@ function updateHires(){
       if(h.lifeTimer<=0){
         h.alive=false;
         const labels={intern:'BURNED OUT 🔥',closer:'COMMISSION EXPIRED 📋',commMgr:'CONTRACT ENDED 📄'};
+        const logMsgs={intern:'🔥 Intern burned out.','closer':'📋 Closer commission expired.','commMgr':'📄 Comm Mgr contract ended.'};
         closingTexts.push({x:h.x,y:h.y-50,text:labels[h.type]||'EXPIRED',alpha:1,vy:-0.7,green:false});
+        logEmail(logMsgs[h.type]||`${h.type} expired.`,'bad');
         return;
       }
     }
@@ -1238,7 +1399,7 @@ function updateHires(){
         if(h.overlapTimer>=90){
           let closest=null,cd=Infinity;
           blobs.forEach(pb=>{const d=Math.hypot(pb.x-h.x,pb.y-h.y);if(d<cd){cd=d;closest=pb;}});
-          if(closest)closest.m+=h.m;
+          if(closest){closest.m+=h.m;logEmail(`💼 ${h.type} absorbed back into you.`,'good');}
           h.alive=false;
           closingTexts.push({x:h.x,y:h.y-50,text:'ABSORBED 💼',alpha:1,vy:-0.8,green:true});
           return;
@@ -1274,6 +1435,7 @@ function updateHires(){
     if(h.type!=='legal'&&!h.rogue&&h.m>ROGUE_THRESHOLD){
       h.rogue=true;
       closingTexts.push({x:h.x,y:h.y-60,text:'I QUIT. Starting my own thing.',alpha:1,vy:-0.7,green:false});
+      logEmail(`🚪 ${h.type} went rogue! They're working for themselves now.`,'bad');
     }
 
     if(h.type==='intern'){
@@ -1289,31 +1451,30 @@ function updateHires(){
         const bonus=rnd(2000,8000);
         if(blobs.length)blobs[0].m+=bonus;
         closingTexts.push({x:h.x,y:h.y-50,text:`WINDFALL +$${Math.round(bonus).toLocaleString()}!`,alpha:1,vy:-0.8,green:true});
+        logEmail(`🎲 Intern windfall! +$${Math.round(bonus).toLocaleString()}`,'good');
       }
       if(Math.random()<0.0004){
         for(let i=0;i<8;i++)foods.push(mkFood());
         foodGridDirty=true;
         closingTexts.push({x:h.x,y:h.y-50,text:'Oops I spilled it...',alpha:1,vy:-0.6,green:false});
+        logEmail('🫗 Intern spilled the leads. Free cash scattered.','warn');
       }
     }
 
     if(h.type==='closer'&&!h.rogue){
       h.headingTimer--;
       if(h.headingTimer<=0){h.heading+=rnd(-0.8,0.8);h.headingTimer=rnd(80,200);}
-
       let nearestNull=null,nearestNullDist=Infinity;
       nullBlobs.forEach(nb=>{
         if(!nb.alive)return;
         const d=Math.hypot(nb.x-h.x,nb.y-h.y);
         if(d<nearestNullDist){nearestNullDist=d;nearestNull=nb;}
       });
-
       let distToPlayer=Infinity;
       let playerBlob=null;
       if(blobs.length){
         blobs.forEach(pb=>{const d=Math.hypot(pb.x-h.x,pb.y-h.y);if(d<distToPlayer){distToPlayer=d;playerBlob=pb;}});
       }
-
       if(nearestNull&&nearestNullDist<280){
         if(Math.random()<0.5){
           const dx=h.x-nearestNull.x,dy=h.y-nearestNull.y,dn=Math.hypot(dx,dy)||1;
@@ -1399,6 +1560,7 @@ function updateHires(){
       if(Math.hypot(bomb.x-h.x,bomb.y-h.y)<hr+bomb.r*0.85){
         h.alive=false;
         closingTexts.push({x:h.x,y:h.y-50,text:'FIRED 💥',alpha:1,vy:-0.8,green:false});
+        logEmail(`💥 ${h.type} hit a bomb and was fired!`,'bad');
         Object.assign(bomb,mkBomb());
       }
     });
@@ -1408,6 +1570,7 @@ function updateHires(){
       if(Math.hypot(bb.x-h.x,bb.y-h.y)<blobR(bb)+hr*0.5&&blobR(bb)>hr*1.1){
         bb.m+=h.m*0.3;h.alive=false;
         closingTexts.push({x:h.x,y:h.y-50,text:'ACQUIRED 😵',alpha:1,vy:-0.8,green:false});
+        logEmail(`😵 CORP acquired your ${h.type}!`,'corp');
       }
     });
 
@@ -1455,7 +1618,10 @@ function updateHires(){
   const prevAdCount=adsigns.length;
   adsigns=adsigns.filter(s=>s.timer>0);
   const expiredAds=prevAdCount-adsigns.length;
-  hireCounts.ads=Math.max(0,hireCounts.ads-expiredAds);
+  if(expiredAds>0){
+    hireCounts.ads=Math.max(0,hireCounts.ads-expiredAds);
+    logEmail(`📢 ${expiredAds} Ad sign(s) expired.`,'warn');
+  }
 
   if(accountantTimer>0)accountantTimer--;
 
@@ -1581,25 +1747,19 @@ function accountantMultiplier(){return accountantTimer>0?2.2:1;}
 function updatePanelButtons(){
   const tm=totalMass();
   const bossActive=bossBlobs.length>0;
-
   const internBtn=document.getElementById('hireIntern');
   internBtn.disabled=tm<HIRE_COSTS.intern||hireCounts.intern>=4;
   document.getElementById('cntIntern').textContent=`${hireCounts.intern}/4`;
-
   const closerBtn=document.getElementById('hireCloser');
   closerBtn.disabled=tm<HIRE_COSTS.closer||hireCounts.closer>=4;
   document.getElementById('cntCloser').textContent=`${hireCounts.closer}/4`;
-
   const adsBtn=document.getElementById('hireAds');
   adsBtn.disabled=tm<HIRE_COSTS.ads||hireCounts.ads>=4;
   document.getElementById('cntAds').textContent=`${hireCounts.ads}/4`;
-
   const commMgrBtn=document.getElementById('hireCommMgr');
   commMgrBtn.disabled=tm<HIRE_COSTS.commMgr||hireCounts.commMgr>=4;
   document.getElementById('cntCommMgr').textContent=`${hireCounts.commMgr}/4`;
-
   document.getElementById('hireAccountant').disabled=tm<HIRE_COSTS.accountant||accountantTimer>0;
-
   const legalBtn=document.getElementById('hireLegal');
   legalBtn.disabled=tm<HIRE_COSTS.legal||bossActive||legalOnRetainer;
   legalBtn.textContent=legalOnRetainer?'ON RETAINER':'RETAINER';
@@ -1619,8 +1779,25 @@ function checkRevenueBanner(currentMass){
   lastMass=currentMass;
 }
 
+function checkMilestones(tm){
+  const milestone=Math.floor(tm/MILESTONE_INTERVAL)*MILESTONE_INTERVAL;
+  if(milestone>0&&milestone>lastMilestoneMass){
+    lastMilestoneMass=milestone;
+    logEmail(`🏆 Revenue milestone: $${milestone.toLocaleString()} earned!`,'good');
+  }
+}
+
+function checkStageChange(tm){
+  const st=getStage(tm);
+  if(st.name!==lastStageName&&lastStageName!==''){
+    logEmail(`📈 Business leveled up: ${st.name}`,'good');
+  }
+  lastStageName=st.name;
+}
+
 function loop(){
   if(!running)return;
+  gameTime++;
   cx.fillStyle='#050508';cx.fillRect(0,0,W,H);
   drawGrid();drawBorder();drawFoods();drawBombs();
   nullBlobs.forEach(nb=>{if(nb.alive)drawNullBlob(nb);});
@@ -1641,6 +1818,7 @@ function loop(){
     cx.fillStyle=grad;cx.fillRect(0,0,W,H);
     if(!bossAlertShown){
       bossAlert.style.display='block';bossAlertShown=true;
+      logEmail('⚠️ CORP takeover incoming! Prepare your defenses.','corp');
       setTimeout(()=>{bossAlert.style.display='none';},3500);
     }
   }
@@ -1655,6 +1833,9 @@ function loop(){
   if(officePanelOpen)updatePanelButtons();
 
   checkRevenueBanner(tm);
+  checkMilestones(tm);
+  checkStageChange(tm);
+  positionEmailWrap();
 
   drawMinimap();
 
@@ -1671,15 +1852,24 @@ function startGame(){
   bossSpawnCountdown=BOSS_APPEAR;bossBombTimer=0;drainBombs=[];bossTimer=BOSS_DURATION;
   revenueAlertCooldown=0;lastMass=300;
   revenueAlert.style.display='none';bossAlert.style.display='none';
+  // reset log
+  emailLog=[];emailUnread=0;gameTime=0;
+  lastStageName='';lastMilestoneMass=0;lastCloseLog=0;
+  document.getElementById('emailBadge').style.display='none';
+  renderEmailLog();
   initFoods();initBombs();initNulls();initPlayer();
   cam={x:MAP/2,y:MAP/2,z:1};mouse={x:W/2,y:H/2};
   foodGridDirty=true;bossAlertShown=false;
-  running=true;loop();
+  running=true;
+  positionEmailWrap();
+  logEmail(`🚀 ${pName} entered the market. Let's hustle.`,'good');
+  loop();
 }
 
 function endGame(){
   running=false;cancelAnimationFrame(raf);
   document.getElementById('dMsg').textContent='Final revenue: $'+Math.round(totalMass()||0).toLocaleString();
+  logEmail(`💀 ACQUIRED. Final revenue: $${Math.round(totalMass()||0).toLocaleString()}`,'corp');
   dead.style.display='flex';
 }
 
@@ -1691,6 +1881,7 @@ document.getElementById('officeBtn').addEventListener('click',()=>{
   document.getElementById('officePanel').style.display=officePanelOpen?'block':'none';
   document.getElementById('officeBtn').textContent=officePanelOpen?'▲ OFFICE PANEL':'▼ OFFICE PANEL';
   if(officePanelOpen)updatePanelButtons();
+  setTimeout(positionEmailWrap,10);
 });
 document.getElementById('hireIntern').addEventListener('click',()=>{if(running)spawnHire('intern');});
 document.getElementById('hireCloser').addEventListener('click',()=>{if(running)spawnHire('closer');});
@@ -1703,6 +1894,9 @@ window.addEventListener('keydown',e=>{
   if(e.code==='Space'){e.preventDefault();split();}
   if(e.code==='KeyW'){e.preventDefault();eject();}
 });
+
+// initial position
+positionEmailWrap();
 })();
 </script>
 </body>
