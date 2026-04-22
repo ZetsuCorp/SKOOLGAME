@@ -164,6 +164,21 @@ h1{font:900 52px 'Courier New',monospace;color:#00ffcc;letter-spacing:6px;margin
 #sueAlert .sa-sub{font:700 9px 'Share Tech Mono',monospace;color:rgba(220,220,255,0.85);letter-spacing:3px;margin-top:3px;}
 
 @keyframes alertSlide{from{opacity:0;top:60px;}to{opacity:1;top:80px;}}
+
+/* ── INSTRUCTIONS ── */
+#instructions{
+  display:none;position:absolute;bottom:0;left:0;right:0;
+  background:rgba(0,0,0,0.82);
+  padding:22px 0;
+  text-align:center;pointer-events:none;z-index:9;
+  border-top:1px solid rgba(0,255,204,0.3);
+}
+#instrText{
+  display:block;width:100%;
+  font:900 24px 'Share Tech Mono',monospace;
+  color:#ffffff;letter-spacing:4px;
+  text-shadow:0 0 18px rgba(0,255,204,0.7);
+}
 </style>
 </head>
 <body>
@@ -219,6 +234,9 @@ h1{font:900 52px 'Courier New',monospace;color:#00ffcc;letter-spacing:6px;margin
   <div id="hireAlert" style="display:none;position:absolute;top:80px;left:50%;transform:translateX(-50%);background:rgba(20,15,0,0.96);border:1px solid #ffd93d;border-radius:6px;padding:10px 28px;pointer-events:none;z-index:9;text-align:center;white-space:nowrap;animation:alertSlide 0.3s ease;">
     <div id="hireAlertTitle" style="font:900 12px 'Share Tech Mono',monospace;color:#ffd93d;letter-spacing:4px;"></div>
     <div id="hireAlertSub" style="font:700 9px 'Share Tech Mono',monospace;color:rgba(255,220,100,0.75);letter-spacing:3px;margin-top:3px;"></div>
+  </div>
+  <div id="instructions">
+    <span id="instrText"></span>
   </div>
   <div id="over">
     <h1>COMMUNITY HUSTLE</h1>
@@ -2088,6 +2106,33 @@ function startGame(){
   running=true;
   positionEmailWrap();
   logEmail(`🚀 ${pName} entered the market. Let's hustle.`,'good');
+  const instr=document.getElementById('instructions');
+  const instrText=document.getElementById('instrText');
+  const instrLines=[
+    'COLLECT CASH TO GROW YOUR COMMUNITY.',
+    'OPEN THE OFFICE PANEL TO HIRE HELP.',
+    'WATCH YOUR EMAIL UPDATES.'
+  ];
+  let instrLineIdx=0,instrCharIdx=0,instrTyping=null,instrHideTimeout=null;
+  function typeNextLine(){
+    if(instrLineIdx>=instrLines.length){
+      instrHideTimeout=setTimeout(()=>{instr.style.display='none';},1200);
+      return;
+    }
+    instrText.textContent='';
+    instr.style.display='block';
+    const line=instrLines[instrLineIdx];
+    instrCharIdx=0;
+    instrTyping=setInterval(()=>{
+      instrText.textContent+=line[instrCharIdx];
+      instrCharIdx++;
+      if(instrCharIdx>=line.length){
+        clearInterval(instrTyping);
+        setTimeout(()=>{instrLineIdx++;typeNextLine();},900);
+      }
+    },38);
+  }
+  typeNextLine();
   loop();
 }
 
