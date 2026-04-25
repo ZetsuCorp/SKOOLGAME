@@ -37,6 +37,8 @@ h1{font:900 52px 'Courier New',monospace;color:#00ffcc;letter-spacing:6px;margin
 #massN{font:700 30px 'Orbitron',sans-serif;color:#ffffff;line-height:1;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:10px;}
 #stageN{font:700 13px 'Share Tech Mono',monospace;color:#ffffff;letter-spacing:3px;margin-bottom:5px;}
 #spdN{font:700 12px 'Share Tech Mono',monospace;color:#00ffcc;letter-spacing:3px;}
+#timeN{font:700 11px 'Share Tech Mono',monospace;color:rgba(255,255,255,0.45);letter-spacing:3px;margin-top:4px;}
+#peakN{font:700 10px 'Share Tech Mono',monospace;color:rgba(0,255,204,0.55);letter-spacing:2px;margin-top:2px;}
 #mm{position:absolute;bottom:16px;right:16px;border:1px solid rgba(255,255,255,0.1);}
 #officeToggle{
   position:absolute;top:16px;left:18px;margin-top:0;pointer-events:all;
@@ -84,7 +86,7 @@ h1{font:900 52px 'Courier New',monospace;color:#00ffcc;letter-spacing:6px;margin
   border:1px solid rgba(0,255,204,0.3);
   border-radius:8px;
   padding:12px 16px 14px 16px;
-  min-width:220px;max-width:220px;
+  min-width:260px;max-width:260px;
   z-index:6;
 }
 #lbTitle{
@@ -98,42 +100,58 @@ h1{font:900 52px 'Courier New',monospace;color:#00ffcc;letter-spacing:6px;margin
   color:rgba(0,255,204,0.4);letter-spacing:2px;
   margin-left:auto;
 }
+#lbHeaders{
+  display:grid;
+  grid-template-columns:20px 1fr 72px 44px;
+  gap:4px;
+  padding:0 0 5px 0;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  margin-bottom:4px;
+}
+.lbh{
+  font:700 7px 'Share Tech Mono',monospace;
+  color:rgba(0,255,204,0.35);letter-spacing:2px;
+  text-transform:uppercase;
+}
+.lbh.right{text-align:right;}
 #lbList{list-style:none;padding:0;margin:0;}
 #lbList li{
-  display:flex;align-items:center;gap:6px;
-  padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);
+  display:grid;
+  grid-template-columns:20px 1fr 72px 44px;
+  gap:4px;
+  align-items:center;
+  padding:5px 0;
+  border-bottom:1px solid rgba(255,255,255,0.04);
   animation:lbSlide 0.3s ease;
 }
 #lbList li:last-child{border-bottom:none;}
 @keyframes lbSlide{from{opacity:0;transform:translateX(6px);}to{opacity:1;transform:translateX(0);}}
 .lb-rank{
   font:700 9px 'Share Tech Mono',monospace;
-  color:rgba(0,255,204,0.5);min-width:16px;text-align:right;
+  color:rgba(0,255,204,0.5);text-align:right;
 }
 .lb-rank.top1{color:#ffd93d;}
 .lb-rank.top2{color:#aaaaaa;}
 .lb-rank.top3{color:#ff9f43;}
 .lb-name{
   font:700 9px 'Share Tech Mono',monospace;
-  color:#ffffff;flex:1;
+  color:#ffffff;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  padding-left:4px;
 }
 .lb-name.is-you{color:#00ffcc;}
 .lb-score{
   font:700 9px 'Share Tech Mono',monospace;
-  color:rgba(255,255,255,0.6);white-space:nowrap;
+  color:rgba(255,255,255,0.7);white-space:nowrap;
+  text-align:right;
 }
 .lb-score.is-you{color:#00ffcc;}
-.lb-stage{
-  font:700 7px 'Share Tech Mono',monospace;
-  color:rgba(255,255,255,0.25);white-space:nowrap;
-  display:block;font-size:7px;
+.lb-time{
+  font:700 8px 'Share Tech Mono',monospace;
+  color:rgba(255,255,255,0.35);white-space:nowrap;
+  text-align:right;
 }
-#lbEmpty{
-  font:700 9px 'Share Tech Mono',monospace;
-  color:rgba(255,255,255,0.2);letter-spacing:2px;
-  text-align:center;padding:10px 0;
-}
+.lb-time.is-you{color:rgba(0,255,204,0.6);}
 
 /* ── COMMUNITY EMAIL LOG ── */
 #emailWrap{
@@ -227,6 +245,8 @@ h1{font:900 52px 'Courier New',monospace;color:#00ffcc;letter-spacing:6px;margin
       <div id="massN">0</div>
       <div id="stageN">SIDE HUSTLE</div>
       <div id="spdN">SPD —</div>
+      <div id="timeN">TIME —:——</div>
+      <div id="peakN">PEAK $0</div>
     </div>
     <button id="officeBtn">▼ OFFICE PANEL</button>
     <div id="officePanel">
@@ -245,7 +265,13 @@ h1{font:900 52px 'Courier New',monospace;color:#00ffcc;letter-spacing:6px;margin
   <!-- RIGHT: LEADERBOARD -->
   <div id="leaderboard">
     <div id="lbTitle">🏆 LEADERBOARD<span id="lbStatus">LIVE</span></div>
-    <ul id="lbList"><li id="lbEmpty" style="list-style:none;"><span style="color:rgba(255,255,255,0.2);font:700 9px 'Share Tech Mono',monospace;letter-spacing:2px;">LOADING...</span></li></ul>
+    <div id="lbHeaders">
+      <span class="lbh">#</span>
+      <span class="lbh" style="padding-left:4px;">NAME</span>
+      <span class="lbh right">PEAK $</span>
+      <span class="lbh right">TIME</span>
+    </div>
+    <ul id="lbList"><li id="lbEmpty" style="list-style:none;grid-column:1/-1;"><span style="color:rgba(255,255,255,0.2);font:700 9px 'Share Tech Mono',monospace;letter-spacing:2px;">LOADING...</span></li></ul>
   </div>
 
   <!-- COMMUNITY EMAIL -->
@@ -313,15 +339,21 @@ async function sbFetch(path,method='GET',body=null){
   return r.json();
 }
 
-async function submitScore(name,score,stage){
+async function submitScore(name,score,stage,peakScore,timeAlive){
   try{
-    await sbFetch('/rest/v1/leaderboard','POST',{name,score:Math.round(score),stage});
+    await sbFetch('/rest/v1/leaderboard','POST',{
+      name,
+      score:Math.round(score),
+      stage,
+      peak_score:Math.round(peakScore),
+      time_alive:Math.round(timeAlive)
+    });
   }catch(e){console.warn('Score submit failed',e);}
 }
 
 async function fetchLeaderboard(){
   try{
-    const rows=await sbFetch('/rest/v1/leaderboard?select=name,score,stage&order=score.desc&limit=10');
+    const rows=await sbFetch('/rest/v1/leaderboard?select=name,score,stage,peak_score,time_alive&order=peak_score.desc&limit=10');
     renderLeaderboard(rows);
   }catch(e){
     document.getElementById('lbStatus').textContent='OFFLINE';
@@ -329,22 +361,32 @@ async function fetchLeaderboard(){
   }
 }
 
+function fmtTime(seconds){
+  if(!seconds&&seconds!==0)return '—:——';
+  const s=Math.round(seconds);
+  const m=Math.floor(s/60),ss=s%60;
+  return`${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+}
+
 function renderLeaderboard(rows){
   const list=document.getElementById('lbList');
   if(!rows||!rows.length){
-    list.innerHTML='<li style="list-style:none;text-align:center;padding:10px 0;"><span style="color:rgba(255,255,255,0.2);font:700 9px Share Tech Mono,monospace;letter-spacing:2px;">NO SCORES YET</span></li>';
+    list.innerHTML='<li style="list-style:none;grid-column:1/-1;text-align:center;padding:10px 0;"><span style="color:rgba(255,255,255,0.2);font:700 9px Share Tech Mono,monospace;letter-spacing:2px;">NO SCORES YET</span></li>';
     return;
   }
   const rankSymbols=['🥇','🥈','🥉'];
   list.innerHTML=rows.map((r,i)=>{
-    const isYou=running&&r.name===pName&&i===0;
+    const isYou=running&&r.name===pName;
     const rankClass=i===0?'top1':i===1?'top2':i===2?'top3':'';
     const rank=rankSymbols[i]||(i+1);
-    const score='$'+formatScore(r.score);
+    const peakVal=r.peak_score||r.score||0;
+    const scoreStr='$'+formatScore(peakVal);
+    const timeStr=fmtTime(r.time_alive);
     return`<li>
       <span class="lb-rank ${rankClass}">${rank}</span>
       <span class="lb-name${isYou?' is-you':''}">${r.name}</span>
-      <span class="lb-score${isYou?' is-you':''}">${score}</span>
+      <span class="lb-score${isYou?' is-you':''}">${scoreStr}</span>
+      <span class="lb-time${isYou?' is-you':''}">${timeStr}</span>
     </li>`;
   }).join('');
   document.getElementById('lbStatus').textContent='LIVE';
@@ -371,6 +413,8 @@ const dead=document.getElementById('dead');
 const massN=document.getElementById('massN');
 const stageN=document.getElementById('stageN');
 const spdN=document.getElementById('spdN');
+const timeN=document.getElementById('timeN');
+const peakN=document.getElementById('peakN');
 const bossAlert=document.getElementById('bossAlert');
 const revenueAlert=document.getElementById('revenueAlert');
 const raTitle=document.getElementById('raTitle');
@@ -384,6 +428,9 @@ let foodEarned=0;
 let lastFoodMilestone=0;
 let revenueAlertCooldown=0;
 let lastMass=0;
+
+// ── PEAK TRACKING ──
+let peakMass=0;
 
 const SUE_COOLDOWN=600;
 const SUE_SPEED=7;
@@ -1282,6 +1329,11 @@ function checkStageChange(tm){
 
 function loop(){
   if(!running)return;gameTime++;
+
+  // ── UPDATE PEAK MASS ──
+  const tm=totalMass();
+  if(tm>peakMass)peakMass=tm;
+
   cx.fillStyle='#050508';cx.fillRect(0,0,W,H);
   drawGrid();drawBorder();drawFoods();drawBombs();
   nullBlobs.forEach(nb=>{if(nb.alive)drawNullBlob(nb);});
@@ -1299,9 +1351,17 @@ function loop(){
   }
   if(!bossBlobs.length&&bossSpawnCountdown===BOSS_APPEAR)bossAlertShown=false;
   updateBlobs();eatFood();eatSettlementPellets();checkBombs();checkBossVsBombs();updateNulls();updateBoss();updateHires();updateSueMissiles();updateCam();
-  const tm=totalMass(),st=getStage(tm);
-  massN.textContent='$'+Math.round(tm).toLocaleString();stageN.textContent=st.name;
+
+  const st=getStage(tm);
+  massN.textContent='$'+Math.round(tm).toLocaleString();
+  stageN.textContent=st.name;
   spdN.textContent='SPD '+(blobs.length?blobs.reduce((s,b)=>s+b.spd,0)/blobs.length:0).toFixed(1);
+  // ── UPDATE TIME + PEAK IN HUD ──
+  const elapsedSec=Math.floor(gameTime/60);
+  const em=Math.floor(elapsedSec/60),es=elapsedSec%60;
+  timeN.textContent=`TIME ${String(em).padStart(2,'0')}:${String(es).padStart(2,'0')}`;
+  peakN.textContent=`PEAK $${formatScore(Math.round(peakMass))}`;
+
   if(officePanelOpen)updatePanelButtons();
   checkRevenueBanner(tm);checkMilestones(tm);checkStageChange(tm);positionEmailWrap();
   drawMinimap();
@@ -1321,6 +1381,8 @@ function startGame(){
   revenueAlert.style.display='none';bossAlert.style.display='none';sueAlert.style.display='none';
   sueMissiles=[];settlementPellets=[];sueState='idle';sueCooldownTimer=0;
   emailLog=[];emailUnread=0;gameTime=0;lastStageName='';lastMilestoneMass=0;lastCloseLog=0;
+  // ── RESET PEAK ──
+  peakMass=300;
   document.getElementById('emailBadge').style.display='none';
   renderEmailLog();initFoods();initBombs();initNulls();initPlayer();
   cam={x:MAP/2,y:MAP/2,z:1};mouse={x:W/2,y:H/2};foodGridDirty=true;bossAlertShown=false;
@@ -1341,11 +1403,14 @@ function startGame(){
 async function endGame(){
   running=false;cancelAnimationFrame(raf);
   const finalScore=Math.round(totalMass()||0);
-  const finalStage=getStage(finalScore).name;
-  document.getElementById('dMsg').textContent='Final revenue: $'+finalScore.toLocaleString();
-  logEmail(`💀 ACQUIRED. Final revenue: $${finalScore.toLocaleString()}`,'corp');
+  const finalStage=getStage(Math.max(finalScore,peakMass)).name;
+  const timeAliveSec=Math.floor(gameTime/60);
+  const tm=Math.floor(timeAliveSec/60),ts=timeAliveSec%60;
+  document.getElementById('dMsg').textContent=
+    `Peak: $${Math.round(peakMass).toLocaleString()} · Time: ${String(tm).padStart(2,'0')}:${String(ts).padStart(2,'0')}`;
+  logEmail(`💀 ACQUIRED. Peak: $${Math.round(peakMass).toLocaleString()} | Time: ${String(tm).padStart(2,'0')}:${String(ts).padStart(2,'0')}`,'corp');
   dead.style.display='flex';
-  await submitScore(pName,finalScore,finalStage);
+  await submitScore(pName,finalScore,finalStage,peakMass,timeAliveSec);
   fetchLeaderboard();
 }
 
